@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint · Typecheck · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # 构建不连真实数据库；Prisma Client 由 postinstall generate 生成
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci?schema=public
+      SESSION_SECRET: ci-placeholder-session-secret-32-chars-minimum
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check (typecheck, lint, format)
+        run: pnpm check
+
+      - name: Unit tests (Vitest)
+        run: pnpm test:unit
+
+      - name: Build
+        run: pnpm run build
+
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    needs: quality
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app_dev_password
+          POSTGRES_DB: user_login_admin
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      CI: true
+      DATABASE_URL: postgresql://app:app_dev_password@localhost:5432/user_login_admin?schema=public
+      SESSION_SECRET: ci-placeholder-session-secret-32-chars-minimum
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma migrate & seed
+        run: pnpm exec prisma migrate deploy && pnpm db:seed
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: E2E tests
+        run: pnpm test:e2e
