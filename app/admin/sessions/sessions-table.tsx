@@ -2,7 +2,7 @@
 
 import { Button, Input, Space, Table, message } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 type SessionRow = {
   id: string;
@@ -16,17 +16,18 @@ type SessionRow = {
 };
 
 export function SessionsTable() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<SessionRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [q, setQ] = useState("");
   const [search, setSearch] = useState("");
+  const [reloadToken, setReloadToken] = useState(0);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
       const params = new URLSearchParams({
         page: String(page),
         pageSize: String(pageSize),
@@ -38,20 +39,20 @@ export function SessionsTable() {
         total?: number;
         error?: string;
       };
+      if (cancelled) return;
       if (!res.ok) {
         message.error(data.error ?? "加载失败");
+        setLoading(false);
         return;
       }
       setItems(data.items ?? []);
       setTotal(data.total ?? 0);
-    } finally {
       setLoading(false);
-    }
-  }, [page, pageSize, search]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [page, pageSize, search, reloadToken]);
 
   async function revoke(id: string) {
     const res = await fetch(`/api/admin/sessions/${id}`, { method: "DELETE" });
@@ -61,7 +62,8 @@ export function SessionsTable() {
       return;
     }
     message.success("已撤销会话");
-    void load();
+    setLoading(true);
+    setReloadToken((n) => n + 1);
   }
 
   const columns: ColumnsType<SessionRow> = [
@@ -91,10 +93,10 @@ export function SessionsTable() {
     },
   ];
 
-  const onTableChange = (pagination: TablePaginationConfig) => {
-    setPage(pagination.current ?? 1);
-    setPageSize(pagination.pageSize ?? 20);
-  };
+  function refresh() {
+    setLoading(true);
+    setReloadToken((n) => n + 1);
+  }
 
   return (
     <div className="space-y-4">
@@ -106,11 +108,12 @@ export function SessionsTable() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onSearch={(v) => {
+            setLoading(true);
             setSearch(v);
             setPage(1);
           }}
         />
-        <Button onClick={() => void load()}>刷新</Button>
+        <Button onClick={refresh}>刷新</Button>
       </Space>
       <Table
         rowKey="id"
@@ -118,7 +121,11 @@ export function SessionsTable() {
         columns={columns}
         dataSource={items}
         pagination={{ current: page, pageSize, total, showSizeChanger: true }}
-        onChange={onTableChange}
+        onChange={(pagination: TablePaginationConfig) => {
+          setLoading(true);
+          setPage(pagination.current ?? 1);
+          setPageSize(pagination.pageSize ?? 20);
+        }}
       />
     </div>
   );

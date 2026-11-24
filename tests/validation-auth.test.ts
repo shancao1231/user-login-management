@@ -27,8 +27,6 @@ describe("validation/auth", () => {
   });
 
   it("loginBodySchema 需要密码非空", () => {
-    expect(() =>
-      loginBodySchema.parse({ email: "a@b.com", password: "" }),
-    ).toThrow();
+    expect(() => loginBodySchema.parse({ email: "a@b.com", password: "" })).toThrow();
   });
 });

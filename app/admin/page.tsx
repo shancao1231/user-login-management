@@ -39,10 +39,7 @@ export default async function AdminDashboardPage() {
           <Link href="/admin/users" className="text-blue-600 hover:underline">
             用户管理 →
           </Link>
-          <Link
-            href="/admin/audit-logs"
-            className="text-blue-600 hover:underline"
-          >
+          <Link href="/admin/audit-logs" className="text-blue-600 hover:underline">
             审计日志 →
           </Link>
         </div>

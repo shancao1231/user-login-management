@@ -4,7 +4,7 @@ import { UserStatus } from "@prisma/client";
 import { Button, Input, Select, Space, Switch, Table, Tag, message } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 type UserRow = {
   id: string;
@@ -23,7 +23,7 @@ const statusColors: Record<UserStatus, string> = {
 };
 
 export function UsersTable() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<UserRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -32,10 +32,11 @@ export function UsersTable() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<UserStatus | undefined>();
   const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
       const params = new URLSearchParams({
         page: String(page),
         pageSize: String(pageSize),
@@ -49,20 +50,20 @@ export function UsersTable() {
         total?: number;
         error?: string;
       };
+      if (cancelled) return;
       if (!res.ok) {
         message.error(data.error ?? "加载失败");
+        setLoading(false);
         return;
       }
       setItems(data.items ?? []);
       setTotal(data.total ?? 0);
-    } finally {
       setLoading(false);
-    }
-  }, [page, pageSize, search, status, includeDeleted]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [page, pageSize, search, status, includeDeleted, reloadToken]);
 
   const columns: ColumnsType<UserRow> = [
     {
@@ -104,9 +105,15 @@ export function UsersTable() {
   ];
 
   const onTableChange = (pagination: TablePaginationConfig) => {
+    setLoading(true);
     setPage(pagination.current ?? 1);
     setPageSize(pagination.pageSize ?? 20);
   };
+
+  function refresh() {
+    setLoading(true);
+    setReloadToken((n) => n + 1);
+  }
 
   return (
     <div className="space-y-4">
@@ -118,6 +125,7 @@ export function UsersTable() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onSearch={(value) => {
+            setLoading(true);
             setSearch(value);
             setPage(1);
           }}
@@ -128,6 +136,7 @@ export function UsersTable() {
           style={{ width: 140 }}
           value={status}
           onChange={(v) => {
+            setLoading(true);
             setStatus(v);
             setPage(1);
           }}
@@ -139,9 +148,16 @@ export function UsersTable() {
         />
         <span className="flex items-center gap-2 text-sm">
           含软删
-          <Switch checked={includeDeleted} onChange={(v) => { setIncludeDeleted(v); setPage(1); }} />
+          <Switch
+            checked={includeDeleted}
+            onChange={(v) => {
+              setLoading(true);
+              setIncludeDeleted(v);
+              setPage(1);
+            }}
+          />
         </span>
-        <Button onClick={() => void load()}>刷新</Button>
+        <Button onClick={refresh}>刷新</Button>
       </Space>
       <Table
         rowKey="id"

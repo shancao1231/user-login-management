@@ -26,8 +26,7 @@ export default defineConfig({
         process.env.DATABASE_URL ??
         "postgresql://app:app_dev_password@127.0.0.1:15432/user_login_admin?schema=public",
       SESSION_SECRET:
-        process.env.SESSION_SECRET ??
-        "playwright-placeholder-session-32chars",
+        process.env.SESSION_SECRET ?? "playwright-placeholder-session-32chars",
     },
   },
 });

@@ -17,20 +17,22 @@ export function RolesMatrix() {
   const [items, setItems] = useState<RoleItem[]>([]);
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/admin/roles");
-        const data = (await res.json()) as { items?: RoleItem[]; error?: string };
-        if (!res.ok) {
-          message.error(data.error ?? "加载失败");
-          return;
-        }
-        setItems(data.items ?? []);
-      } finally {
+    let cancelled = false;
+    void (async () => {
+      const res = await fetch("/api/admin/roles");
+      const data = (await res.json()) as { items?: RoleItem[]; error?: string };
+      if (cancelled) return;
+      if (!res.ok) {
+        message.error(data.error ?? "加载失败");
         setLoading(false);
+        return;
       }
+      setItems(data.items ?? []);
+      setLoading(false);
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const columns: ColumnsType<RoleItem> = [

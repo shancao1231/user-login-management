@@ -10,7 +10,9 @@ export default function VerifyEmailPage() {
         <h1 className="text-xl font-semibold">邮箱验证</h1>
         <p className="mt-2 text-sm text-zinc-600">点击下方按钮完成验证。</p>
         <div className="mt-6">
-          <Suspense fallback={<div className="h-10 animate-pulse rounded bg-zinc-100" />}>
+          <Suspense
+            fallback={<div className="h-10 animate-pulse rounded bg-zinc-100" />}
+          >
             <VerifyEmailForm />
           </Suspense>
         </div>

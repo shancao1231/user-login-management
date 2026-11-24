@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  generateSessionToken,
-  hashSessionToken,
-} from "@/lib/auth/session-token";
+import { generateSessionToken, hashSessionToken } from "@/lib/auth/session-token";
 
 describe("session-token", () => {
   it("generateSessionToken 长度与字符集合理", () => {

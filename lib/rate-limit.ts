@@ -6,11 +6,7 @@ type Bucket = { count: number; resetAt: number };
 
 const buckets = new Map<string, Bucket>();
 
-function consumeMemoryRateLimit(
-  key: string,
-  limit: number,
-  windowMs: number,
-): boolean {
+function consumeMemoryRateLimit(key: string, limit: number, windowMs: number): boolean {
   const now = Date.now();
   const existing = buckets.get(key);
 

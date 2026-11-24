@@ -2,7 +2,7 @@
 
 import { Button, Input, Space, Table, message } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 type AuditRow = {
   id: string;
@@ -15,7 +15,7 @@ type AuditRow = {
 };
 
 export function AuditLogsTable() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<AuditRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -24,10 +24,11 @@ export function AuditLogsTable() {
   const [q, setQ] = useState("");
   const [actionFilter, setActionFilter] = useState("");
   const [qFilter, setQFilter] = useState("");
+  const [reloadToken, setReloadToken] = useState(0);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
       const params = new URLSearchParams({
         page: String(page),
         pageSize: String(pageSize),
@@ -36,20 +37,20 @@ export function AuditLogsTable() {
       if (qFilter) params.set("q", qFilter);
       const res = await fetch(`/api/admin/audit-logs?${params}`);
       const data = await res.json();
+      if (cancelled) return;
       if (!res.ok) {
         message.error(data.error ?? "加载失败");
+        setLoading(false);
         return;
       }
       setItems(data.items ?? []);
       setTotal(data.total ?? 0);
-    } finally {
       setLoading(false);
-    }
-  }, [page, pageSize, actionFilter, qFilter]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [page, pageSize, actionFilter, qFilter, reloadToken]);
 
   const columns: ColumnsType<AuditRow> = [
     {
@@ -72,6 +73,11 @@ export function AuditLogsTable() {
     { title: "IP", dataIndex: "ip", render: (v) => v ?? "—" },
   ];
 
+  function refresh() {
+    setLoading(true);
+    setReloadToken((n) => n + 1);
+  }
+
   return (
     <div className="space-y-4">
       <Space wrap>
@@ -81,6 +87,7 @@ export function AuditLogsTable() {
           value={action}
           onChange={(e) => setAction(e.target.value)}
           onPressEnter={() => {
+            setLoading(true);
             setActionFilter(action);
             setPage(1);
           }}
@@ -91,11 +98,12 @@ export function AuditLogsTable() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onSearch={(value) => {
+            setLoading(true);
             setQFilter(value);
             setPage(1);
           }}
         />
-        <Button onClick={() => void load()}>刷新</Button>
+        <Button onClick={refresh}>刷新</Button>
       </Space>
       <Table
         rowKey="id"
@@ -104,6 +112,7 @@ export function AuditLogsTable() {
         dataSource={items}
         pagination={{ current: page, pageSize, total, showSizeChanger: true }}
         onChange={(p: TablePaginationConfig) => {
+          setLoading(true);
           setPage(p.current ?? 1);
           setPageSize(p.pageSize ?? 20);
         }}

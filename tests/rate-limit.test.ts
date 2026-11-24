@@ -3,9 +3,7 @@ import { consumeRateLimit, rateLimitKey } from "@/lib/rate-limit";
 
 describe("rate-limit", () => {
   it("rateLimitKey 拼接", () => {
-    expect(rateLimitKey(["login", "1.2.3.4", "a@b.com"])).toBe(
-      "login:1.2.3.4:a@b.com",
-    );
+    expect(rateLimitKey(["login", "1.2.3.4", "a@b.com"])).toBe("login:1.2.3.4:a@b.com");
     expect(rateLimitKey(["x", undefined, "y"])).toBe("x:y");
   });
 

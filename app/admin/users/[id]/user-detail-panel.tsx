@@ -13,7 +13,7 @@ import {
   message,
 } from "antd";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 type UserDetail = {
   id: string;
@@ -36,16 +36,18 @@ export function UserDetailPanel({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(true);
   const [pwdOpen, setPwdOpen] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
       const [userRes, rolesRes] = await Promise.all([
         fetch(`/api/admin/users/${userId}`),
         fetch("/api/admin/roles"),
       ]);
       const userData = await userRes.json();
+      if (cancelled) return;
       if (!userRes.ok) {
         message.error(userData.error ?? "加载失败");
+        setLoading(false);
         return;
       }
       setUser(userData.user);
@@ -53,14 +55,12 @@ export function UserDetailPanel({ userId }: { userId: string }) {
         const rolesData = await rolesRes.json();
         setRoles(rolesData.items ?? []);
       }
-    } finally {
       setLoading(false);
-    }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   async function patchStatus(next: UserStatus) {
     Modal.confirm({
@@ -169,7 +169,11 @@ export function UserDetailPanel({ userId }: { userId: string }) {
         <Descriptions.Item label="姓名">{user.name ?? "—"}</Descriptions.Item>
         <Descriptions.Item label="状态">
           <Tag color={user.status === "ACTIVE" ? "green" : "red"}>{user.status}</Tag>
-          {user.deletedAt ? <Tag className="ml-2">软删于 {new Date(user.deletedAt).toLocaleString()}</Tag> : null}
+          {user.deletedAt ? (
+            <Tag className="ml-2">
+              软删于 {new Date(user.deletedAt).toLocaleString()}
+            </Tag>
+          ) : null}
         </Descriptions.Item>
         <Descriptions.Item label="邮箱验证">
           {user.emailVerifiedAt ? (
