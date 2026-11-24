@@ -2,12 +2,11 @@
 
 import { Button, Form, Input, message } from "antd";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function LoginForm() {
+export function LoginForm({ nextPath }: { nextPath?: string }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
 
   async function onFinish(values: { email: string; password: string }) {
@@ -24,7 +23,7 @@ export function LoginForm() {
         return;
       }
       message.success("登录成功");
-      const next = searchParams.get("next") || "/";
+      const next = nextPath?.startsWith("/") ? nextPath : "/";
       router.push(next);
       router.refresh();
     } catch {
@@ -36,7 +35,13 @@ export function LoginForm() {
 
   return (
     <>
-      <Form layout="vertical" onFinish={onFinish} requiredMark={false} size="large">
+      <Form
+        layout="vertical"
+        onFinish={onFinish}
+        requiredMark={false}
+        size="large"
+        data-testid="auth-login-form"
+      >
         <Form.Item
           label="邮箱"
           name="email"
@@ -54,7 +59,13 @@ export function LoginForm() {
         >
           <Input.Password autoComplete="current-password" />
         </Form.Item>
-        <Button type="primary" htmlType="submit" block loading={loading}>
+        <Button
+          type="primary"
+          htmlType="submit"
+          block
+          loading={loading}
+          data-testid="auth-login-submit"
+        >
           登录
         </Button>
       </Form>

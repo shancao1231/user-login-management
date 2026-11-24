@@ -6,9 +6,12 @@ const ADMIN_PASSWORD = "ChangeMe_Admin123!";
 test.describe("登录与管理后台", () => {
   test("超级管理员可登录并打开用户列表", async ({ page }) => {
     await page.goto("/login?next=/admin/users");
+    await expect(page.getByTestId("auth-login-submit")).toBeVisible({
+      timeout: 30_000,
+    });
     await page.getByLabel("邮箱").fill(ADMIN_EMAIL);
     await page.getByLabel("密码").fill(ADMIN_PASSWORD);
-    await page.getByRole("button", { name: "登录" }).click();
+    await page.getByTestId("auth-login-submit").click();
 
     await expect(page).toHaveURL(/\/admin\/users/);
     await expect(page.getByText("用户列表")).toBeVisible({ timeout: 15_000 });
@@ -20,6 +23,9 @@ test.describe("登录与管理后台", () => {
     const password = "E2eUser_12345";
 
     await page.goto("/register");
+    await expect(page.getByRole("button", { name: "注册" })).toBeVisible({
+      timeout: 30_000,
+    });
     await page.getByLabel("邮箱").fill(email);
     await page.getByLabel("密码", { exact: true }).fill(password);
     await page.getByLabel("确认密码").fill(password);
