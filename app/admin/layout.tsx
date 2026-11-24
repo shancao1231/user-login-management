@@ -20,7 +20,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   if (!hasAnyPermission(user.permissions, [...ADMIN_PERMISSIONS])) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-16 text-center">
+      <div
+        className="mx-auto max-w-lg px-4 py-16 text-center"
+        data-testid="admin-forbidden"
+      >
         <h1 className="text-xl font-semibold">403 无权限</h1>
         <p className="mt-2 text-zinc-600">你没有管理后台访问权限。</p>
       </div>
