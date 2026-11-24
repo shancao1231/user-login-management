@@ -20,6 +20,7 @@
 1. 启动 GitHub Actions **Postgres 16** 服务
 2. `prisma migrate deploy` + `db:seed`
 3. `pnpm build` + Playwright（`pnpm start` + Chromium）
+4. E2E job 使用 `actions/cache` 缓存 `~/.cache/ms-playwright`（**同一把 `pnpm-lock.yaml` 命中时跳过重新下载 Chromium**，仍会执行 `install --with-deps` 装系统依赖）
 
 ## 本地复现 CI
 

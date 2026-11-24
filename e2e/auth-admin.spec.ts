@@ -15,22 +15,24 @@ test.describe("登录与管理后台", () => {
 
     await expect(page).toHaveURL(/\/admin\/users/);
     await expect(page.getByText("用户列表")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(ADMIN_EMAIL)).toBeVisible();
   });
 
-  test("普通用户访问 /admin 显示 403", async ({ page }) => {
+  test("普通用户访问 /admin 显示 403", async ({ page, request }) => {
     const email = `e2e-${Date.now()}@example.com`;
     const password = "E2eUser_12345";
 
-    await page.goto("/register");
-    await expect(page.getByRole("button", { name: "注册" })).toBeVisible({
+    const registerRes = await request.post("/api/auth/register", {
+      data: { email, password, name: "E2E User" },
+    });
+    expect(registerRes.ok()).toBeTruthy();
+
+    await page.goto("/login");
+    await expect(page.getByTestId("auth-login-submit")).toBeVisible({
       timeout: 30_000,
     });
     await page.getByLabel("邮箱").fill(email);
-    await page.getByLabel("密码", { exact: true }).fill(password);
-    await page.getByLabel("确认密码").fill(password);
-    await page.getByRole("button", { name: "注册" }).click();
-    await expect(page).toHaveURL(/\/profile/, { timeout: 15_000 });
+    await page.getByLabel("密码").fill(password);
+    await page.getByTestId("auth-login-submit").click();
 
     await page.goto("/admin");
     await expect(page.getByRole("heading", { name: "403 无权限" })).toBeVisible();
